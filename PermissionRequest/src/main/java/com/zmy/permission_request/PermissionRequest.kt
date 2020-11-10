@@ -41,13 +41,18 @@ class PermissionRequest(private val activity: FragmentActivity) {
 }
 
 class TempFragment(
-    private val permissions: List<String>,
-    private val deferred: CompletableDeferred<List<String>>
+    private val permissions: List<String>?,
+    private val deferred: CompletableDeferred<List<String>>?
 ) : Fragment() {
-    private val requestCode=deferred.hashCode().shr(16)
+
+    constructor() : this(null, null)
+
+    private val requestCode = deferred?.hashCode()?.shr(16) ?: 0
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        requestPermissions(permissions.toTypedArray(), requestCode)
+        permissions?.let {
+            requestPermissions(permissions.toTypedArray(), requestCode)
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -56,10 +61,15 @@ class TempFragment(
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == requestCode) {
-            deferred.complete(permissions.filterIndexed { index, _ ->
-                grantResults[index] == PackageManager.PERMISSION_GRANTED
-            })
+        deferred?.let {
+            if (requestCode == requestCode) {
+                deferred.complete(permissions.filterIndexed { index, _ ->
+                    grantResults[index] == PackageManager.PERMISSION_GRANTED
+                })
+            }
         }
+        activity?.supportFragmentManager?.beginTransaction()
+            ?.remove(this)
+            ?.commit()
     }
 }
